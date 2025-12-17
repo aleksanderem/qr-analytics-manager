@@ -1,0 +1,26 @@
+# IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+test_*.svg
+test_*.png
+
+# Logs
+*.log
+
+# Node (if any)
+node_modules/
+
+# Composer (if any)
+vendor/
+
+# Session/task tracking (local dev only)
+session_state.json
+tasks_progress.json
+tasks_progress_verbose.txt
