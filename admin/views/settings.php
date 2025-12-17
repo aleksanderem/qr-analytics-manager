@@ -338,3 +338,5 @@ jQuery(document).ready(function($) {
     $('#custom_base_url').prop('disabled', $('input[name="base_url"]:checked').val() !== 'custom');
 });
 </script>
+
+<?php include QR_ANALYTICS_PLUGIN_DIR . 'admin/views/partials/footer.php'; ?>

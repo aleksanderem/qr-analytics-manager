@@ -163,4 +163,6 @@ $page_title = $is_edit ? __('Edit QR Code', 'qr-analytics') : __('Add New QR Cod
             <?php endif; ?>
         </div>
     </div>
+
+    <?php include QR_ANALYTICS_PLUGIN_DIR . 'admin/views/partials/footer.php'; ?>
 </div>

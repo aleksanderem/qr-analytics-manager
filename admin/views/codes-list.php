@@ -79,4 +79,6 @@ if (!defined('ABSPATH')) {
             </a>
         </div>
     <?php endif; ?>
+
+    <?php include QR_ANALYTICS_PLUGIN_DIR . 'admin/views/partials/footer.php'; ?>
 </div>
