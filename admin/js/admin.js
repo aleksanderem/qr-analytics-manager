@@ -41,12 +41,24 @@
             // Auto-generate slug from name if slug is empty
             var nameField = $('#qr-name');
             var slugField = $('#qr-slug');
+            var isEditMode = $('input[name="id"]').val() > 0;
 
-            if (nameField.length && slugField.length && !slugField.val()) {
+            // Track if user manually edited the slug
+            var slugManuallyEdited = isEditMode;
+
+            if (nameField.length && slugField.length) {
+                // Mark slug as manually edited when user types in it
+                slugField.on('input', function() {
+                    slugManuallyEdited = true;
+                });
+
+                // Auto-generate slug from name only if not manually edited
                 nameField.on('input', function() {
-                    var slug = QRAnalytics.generateSlug($(this).val());
-                    slugField.val(slug);
-                    QRAnalytics.updateTrackingUrl(slug);
+                    if (!slugManuallyEdited) {
+                        var slug = QRAnalytics.generateSlug($(this).val());
+                        slugField.val(slug);
+                        QRAnalytics.updateTrackingUrl(slug);
+                    }
                 });
             }
         },

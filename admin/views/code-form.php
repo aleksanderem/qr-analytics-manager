@@ -15,10 +15,8 @@ $page_title = $is_edit ? __('Edit QR Code', 'qr-analytics') : __('Add New QR Cod
 
     <div class="qr-form-layout">
         <div class="qr-form-main">
-            <form id="qr-code-form" class="qr-card">
-                <?php if ($is_edit) : ?>
-                    <input type="hidden" name="id" value="<?php echo esc_attr($qr_code->id); ?>">
-                <?php endif; ?>
+            <form id="qr-code-form" class="qr-card" autocomplete="off">
+                <input type="hidden" name="id" value="<?php echo $is_edit ? esc_attr($qr_code->id) : '0'; ?>">
 
                 <table class="form-table">
                     <tr>
