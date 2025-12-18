@@ -29,6 +29,8 @@ class QR_Admin {
         add_action('wp_ajax_qr_download_svg', array($this, 'ajax_download_svg'));
         add_action('wp_ajax_qr_save_base_url', array($this, 'ajax_save_base_url'));
         add_action('wp_ajax_qr_get_lan_ips', array($this, 'ajax_get_lan_ips'));
+        add_action('wp_ajax_qr_verify_data', array($this, 'ajax_verify_data'));
+        add_action('wp_ajax_qr_delete_all_data', array($this, 'ajax_delete_all_data'));
     }
 
     /**
@@ -471,5 +473,119 @@ class QR_Admin {
 
         echo $svg;
         exit;
+    }
+
+    /**
+     * AJAX handler for verifying data integrity
+     */
+    public function ajax_verify_data() {
+        check_ajax_referer('qr_analytics_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'qr-analytics')));
+        }
+
+        global $wpdb;
+        $codes_table = QR_Database::get_qr_codes_table();
+        $clicks_table = QR_Database::get_qr_clicks_table();
+
+        $issues = array();
+        $stats = array(
+            'total_codes' => 0,
+            'total_clicks' => 0,
+            'codes_checked' => 0,
+            'issues_found' => 0
+        );
+
+        $qr_codes = $wpdb->get_results("SELECT * FROM $codes_table");
+        $stats['total_codes'] = count($qr_codes);
+        $stats['total_clicks'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM $clicks_table");
+
+        foreach ($qr_codes as $code) {
+            $stats['codes_checked']++;
+            $code_issues = array();
+
+            if (empty($code->name)) {
+                $code_issues[] = __('Missing name', 'qr-analytics');
+            }
+
+            if (empty($code->slug)) {
+                $code_issues[] = __('Missing slug', 'qr-analytics');
+            }
+
+            if (empty($code->destination_url)) {
+                $code_issues[] = __('Missing destination URL', 'qr-analytics');
+            }
+
+            if (!filter_var($code->destination_url, FILTER_VALIDATE_URL)) {
+                $code_issues[] = __('Invalid destination URL format', 'qr-analytics');
+            }
+
+            if (!empty($code_issues)) {
+                $issues[] = array(
+                    'id' => $code->id,
+                    'name' => $code->name ?: sprintf(__('QR #%d', 'qr-analytics'), $code->id),
+                    'problems' => $code_issues
+                );
+                $stats['issues_found'] += count($code_issues);
+            }
+        }
+
+        $orphaned_clicks = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM $clicks_table c
+             LEFT JOIN $codes_table q ON c.qr_code_id = q.id
+             WHERE q.id IS NULL"
+        );
+
+        if ($orphaned_clicks > 0) {
+            $issues[] = array(
+                'id' => 0,
+                'name' => __('Orphaned Click Records', 'qr-analytics'),
+                'problems' => array(sprintf(__('%d click records with no associated QR code', 'qr-analytics'), $orphaned_clicks))
+            );
+            $stats['issues_found']++;
+        }
+
+        wp_send_json_success(array(
+            'stats' => $stats,
+            'issues' => $issues,
+            'message' => empty($issues)
+                ? __('All data integrity checks passed!', 'qr-analytics')
+                : sprintf(__('Found %d issue(s) that need attention.', 'qr-analytics'), count($issues))
+        ));
+    }
+
+    /**
+     * AJAX handler for deleting all QR codes and click data
+     */
+    public function ajax_delete_all_data() {
+        check_ajax_referer('qr_analytics_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'qr-analytics')));
+        }
+
+        $confirm = isset($_POST['confirm']) ? sanitize_text_field($_POST['confirm']) : '';
+
+        if ($confirm !== 'DELETE') {
+            wp_send_json_error(array('message' => __('Confirmation required. Type DELETE to confirm.', 'qr-analytics')));
+        }
+
+        global $wpdb;
+        $codes_table = QR_Database::get_qr_codes_table();
+        $clicks_table = QR_Database::get_qr_clicks_table();
+
+        $deleted_clicks = $wpdb->query("TRUNCATE TABLE $clicks_table");
+        $deleted_codes = $wpdb->query("TRUNCATE TABLE $codes_table");
+
+        if ($deleted_clicks === false || $deleted_codes === false) {
+            wp_send_json_error(array('message' => __('Failed to delete data. Database error occurred.', 'qr-analytics')));
+        }
+
+        QR_Router::flush_rules();
+
+        wp_send_json_success(array(
+            'message' => __('All QR codes and click data have been permanently deleted.', 'qr-analytics')
+        ));
     }
 }

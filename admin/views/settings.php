@@ -89,6 +89,37 @@ $scheme = isset($parsed['scheme']) ? $parsed['scheme'] : 'http';
     </div>
 
     <div class="qr-card">
+        <h2><?php _e('Data Tools', 'qr-analytics'); ?></h2>
+        <p class="description">
+            <?php _e('Tools for managing QR code data integrity and cleanup.', 'qr-analytics'); ?>
+        </p>
+
+        <table class="form-table">
+            <tr>
+                <th scope="row"><?php _e('Verify Data Integrity', 'qr-analytics'); ?></th>
+                <td>
+                    <button type="button" id="qr-verify-data" class="button">
+                        <span class="dashicons dashicons-yes-alt"></span>
+                        <?php _e('Run Verification', 'qr-analytics'); ?>
+                    </button>
+                    <p class="description"><?php _e('Check all QR codes for missing or invalid data (name, slug, destination URL).', 'qr-analytics'); ?></p>
+                    <div id="qr-verify-results" style="margin-top: 10px; display: none;"></div>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php _e('Delete All Data', 'qr-analytics'); ?></th>
+                <td>
+                    <button type="button" id="qr-delete-all" class="button button-link-delete">
+                        <span class="dashicons dashicons-trash"></span>
+                        <?php _e('Delete All QR Codes', 'qr-analytics'); ?>
+                    </button>
+                    <p class="description"><?php _e('Permanently delete all QR codes and their click statistics. This action cannot be undone!', 'qr-analytics'); ?></p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="qr-card">
         <h2><?php _e('Current Configuration', 'qr-analytics'); ?></h2>
         <table class="qr-info-table">
             <tr>
@@ -336,6 +367,95 @@ jQuery(document).ready(function($) {
 
     // Initial state
     $('#custom_base_url').prop('disabled', $('input[name="base_url"]:checked').val() !== 'custom');
+
+    // Verify data integrity
+    $('#qr-verify-data').on('click', function() {
+        var $btn = $(this);
+        var $results = $('#qr-verify-results');
+        var originalText = $btn.html();
+
+        $btn.prop('disabled', true).html('<span class="dashicons dashicons-update qr-spin"></span> <?php _e('Verifying...', 'qr-analytics'); ?>');
+        $results.hide();
+
+        $.post(qrAnalytics.ajaxUrl, {
+            action: 'qr_verify_data',
+            nonce: qrAnalytics.nonce
+        })
+        .done(function(response) {
+            $results.show();
+            if (response.success) {
+                var data = response.data;
+                var hasIssues = data.issues && data.issues.length > 0;
+                var html = '<div class="notice notice-' + (hasIssues ? 'warning' : 'success') + ' inline" style="margin: 0;">';
+                html += '<p><strong>' + data.message + '</strong></p>';
+                html += '<p><?php _e('Total QR codes:', 'qr-analytics'); ?> ' + data.stats.total_codes + '</p>';
+                html += '<p><?php _e('Total clicks:', 'qr-analytics'); ?> ' + data.stats.total_clicks + '</p>';
+
+                if (hasIssues) {
+                    html += '<p><strong><?php _e('Issues found:', 'qr-analytics'); ?></strong></p><ul style="margin-left: 20px;">';
+                    data.issues.forEach(function(item) {
+                        html += '<li><strong>' + item.name + ':</strong> ' + item.problems.join(', ') + '</li>';
+                    });
+                    html += '</ul>';
+                } else {
+                    html += '<p style="color: #00a32a;"><span class="dashicons dashicons-yes"></span> <?php _e('All data integrity checks passed!', 'qr-analytics'); ?></p>';
+                }
+                html += '</div>';
+                $results.html(html);
+            } else {
+                $results.html('<div class="notice notice-error inline" style="margin: 0;"><p>' + (response.data.message || '<?php _e('Verification failed', 'qr-analytics'); ?>') + '</p></div>');
+            }
+        })
+        .fail(function() {
+            $results.show().html('<div class="notice notice-error inline" style="margin: 0;"><p><?php _e('Verification failed', 'qr-analytics'); ?></p></div>');
+        })
+        .always(function() {
+            $btn.prop('disabled', false).html(originalText);
+        });
+    });
+
+    // Delete all data
+    $('#qr-delete-all').on('click', function() {
+        var confirmMsg = '<?php _e('Are you sure you want to delete ALL QR codes and their statistics?', 'qr-analytics'); ?>\n\n<?php _e('This action CANNOT be undone!', 'qr-analytics'); ?>';
+
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        // Double confirmation
+        var confirmMsg2 = '<?php _e('Type DELETE to confirm:', 'qr-analytics'); ?>';
+        var userInput = prompt(confirmMsg2);
+
+        if (userInput !== 'DELETE') {
+            alert('<?php _e('Deletion cancelled.', 'qr-analytics'); ?>');
+            return;
+        }
+
+        var $btn = $(this);
+        var originalText = $btn.html();
+
+        $btn.prop('disabled', true).html('<span class="dashicons dashicons-update qr-spin"></span> <?php _e('Deleting...', 'qr-analytics'); ?>');
+
+        $.post(qrAnalytics.ajaxUrl, {
+            action: 'qr_delete_all_data',
+            nonce: qrAnalytics.nonce,
+            confirm: 'DELETE'
+        })
+        .done(function(response) {
+            if (response.success) {
+                alert(response.data.message);
+                location.reload();
+            } else {
+                alert(response.data.message || '<?php _e('Deletion failed', 'qr-analytics'); ?>');
+            }
+        })
+        .fail(function() {
+            alert('<?php _e('Deletion failed', 'qr-analytics'); ?>');
+        })
+        .always(function() {
+            $btn.prop('disabled', false).html(originalText);
+        });
+    });
 });
 </script>
 
