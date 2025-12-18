@@ -155,6 +155,9 @@ class QR_Database {
         global $wpdb;
         $table = self::get_qr_codes_table();
 
+        // Normalize slug the same way it's stored
+        $slug = sanitize_title($slug);
+
         if ($exclude_id > 0) {
             return (bool) $wpdb->get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM $table WHERE slug = %s AND id != %d",
