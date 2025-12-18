@@ -3,7 +3,7 @@
  * Plugin Name: QR Analytics
  * Plugin URI: https://github.com/aleksanderem/qr-analytics-manager
  * Description: Generate trackable QR codes with custom slugs and comprehensive analytics dashboard for marketing campaigns.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: Alex M.
  * Author URI: https://github.com/aleksanderem
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('QR_ANALYTICS_VERSION', '1.0.2');
+define('QR_ANALYTICS_VERSION', '1.0.3');
 define('QR_ANALYTICS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('QR_ANALYTICS_PLUGIN_URL', plugin_dir_url(__FILE__));
 

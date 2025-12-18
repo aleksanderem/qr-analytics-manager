@@ -108,7 +108,7 @@
             var formData = {
                 action: 'qr_save_code',
                 nonce: qrAnalytics.nonce,
-                id: form.find('input[name="id"]').val() || 0,
+                id: parseInt(form.find('input[name="id"]').val(), 10) || 0,
                 name: form.find('#qr-name').val(),
                 slug: form.find('#qr-slug').val(),
                 destination_url: form.find('#qr-destination').val(),
@@ -121,9 +121,9 @@
                     if (response.success) {
                         QRAnalytics.showNotice('success', response.data.message);
 
-                        // If new code, redirect to edit page
-                        if (!formData.id && response.data.id) {
-                            window.location.href = 'admin.php?page=qr-analytics-new&edit=' + response.data.id;
+                        // If new code, redirect to codes list
+                        if (formData.id === 0 && response.data.id) {
+                            window.location.href = 'admin.php?page=qr-analytics-codes';
                         }
                     } else {
                         QRAnalytics.showNotice('error', response.data.message || qrAnalytics.strings.error);
